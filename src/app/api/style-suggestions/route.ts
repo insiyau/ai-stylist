@@ -428,7 +428,6 @@ function manualDataExtraction(text: string): StyleSuggestion {
         // Regular expressions to find key information
         const outfitTitleRegex = /"title"\s*:\s*"([^"]+)"/g;
         const outfitDescRegex = /"description"\s*:\s*"([^"]+)"/g;
-        const itemsStartRegex = /"items"\s*:\s*\[/g;
         const colorRegex = /#[0-9A-Fa-f]{6}/g;
         const seasonRegex = /"(spring|summer|fall|winter)"\s*:\s*"([^"]+)"/g;
 
