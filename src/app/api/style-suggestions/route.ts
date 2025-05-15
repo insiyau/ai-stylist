@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { StyleSuggestion } from '@/types';
+import fs from 'fs';
+import path from 'path';
 
 // Define the standardized API response format
 interface StyleAPIResponse {
@@ -76,12 +78,12 @@ export async function POST(request: NextRequest) {
 
         return createStandardResponse(true, normalizedSuggestions);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error processing style suggestions:', error);
         return createStandardResponse(
             false,
             createDefaultStyleSuggestion(),
-            error.message || 'An unknown error occurred'
+            error instanceof Error ? error.message : 'An unknown error occurred'
         );
     }
 }
@@ -136,28 +138,30 @@ function createDefaultStyleSuggestion(): StyleSuggestion {
             }
         ],
         colorMatching: { ...DEFAULT_COLOR_MATCHING },
-        seasonalRecommendations: { ...DEFAULT_SEASONAL_RECOMMENDATIONS }
+        seasonalRecommendations: { ...DEFAULT_SEASONAL_RECOMMENDATIONS },
+        moodBoards: []
     };
 }
 
 /**
  * Normalizes the style suggestions to ensure consistent structure
  */
-function normalizeStyleSuggestions(suggestions: any): StyleSuggestion {
+function normalizeStyleSuggestions(suggestions: StyleSuggestion | Record<string, unknown>): StyleSuggestion {
     // Create a base structure with defaults
     const normalized: StyleSuggestion = {
         outfitIdeas: [],
         colorMatching: { ...DEFAULT_COLOR_MATCHING },
-        seasonalRecommendations: { ...DEFAULT_SEASONAL_RECOMMENDATIONS }
+        seasonalRecommendations: { ...DEFAULT_SEASONAL_RECOMMENDATIONS },
+        moodBoards: []
     };
 
     // Process outfit ideas
     if (suggestions.outfitIdeas && Array.isArray(suggestions.outfitIdeas)) {
-        normalized.outfitIdeas = suggestions.outfitIdeas.map((outfit: any) => ({
-            title: outfit.title || DEFAULT_OUTFIT_IDEA.title,
-            description: outfit.description || DEFAULT_OUTFIT_IDEA.description,
+        normalized.outfitIdeas = suggestions.outfitIdeas.map((outfit: Record<string, unknown>) => ({
+            title: typeof outfit.title === 'string' ? outfit.title : DEFAULT_OUTFIT_IDEA.title,
+            description: typeof outfit.description === 'string' ? outfit.description : DEFAULT_OUTFIT_IDEA.description,
             items: Array.isArray(outfit.items) && outfit.items.length > 0
-                ? outfit.items
+                ? outfit.items.filter((item): item is string => typeof item === 'string')
                 : [...DEFAULT_OUTFIT_IDEA.items]
         }));
     } else {
@@ -182,32 +186,33 @@ function normalizeStyleSuggestions(suggestions: any): StyleSuggestion {
     }
 
     // Process color matching
-    if (suggestions.colorMatching) {
+    if (suggestions.colorMatching && typeof suggestions.colorMatching === 'object') {
+        const colorMatching = suggestions.colorMatching as Record<string, unknown>;
+
         // Handle complementary colors
-        if (suggestions.colorMatching.complementaryColors &&
-            Array.isArray(suggestions.colorMatching.complementaryColors) &&
-            suggestions.colorMatching.complementaryColors.length > 0) {
+        if (colorMatching.complementaryColors &&
+            Array.isArray(colorMatching.complementaryColors) &&
+            colorMatching.complementaryColors.length > 0) {
             normalized.colorMatching.complementaryColors =
-                suggestions.colorMatching.complementaryColors;
+                colorMatching.complementaryColors.filter((color): color is string => typeof color === 'string');
         }
 
         // Handle avoid colors
-        if (suggestions.colorMatching.avoidColors &&
-            Array.isArray(suggestions.colorMatching.avoidColors) &&
-            suggestions.colorMatching.avoidColors.length > 0) {
+        if (colorMatching.avoidColors &&
+            Array.isArray(colorMatching.avoidColors) &&
+            colorMatching.avoidColors.length > 0) {
             normalized.colorMatching.avoidColors =
-                suggestions.colorMatching.avoidColors;
+                colorMatching.avoidColors.filter((color): color is string => typeof color === 'string');
         }
     }
 
     // Process seasonal recommendations
-    if (suggestions.seasonalRecommendations) {
-        const seasons = ['spring', 'summer', 'fall', 'winter'];
+    if (suggestions.seasonalRecommendations && typeof suggestions.seasonalRecommendations === 'object') {
+        const seasonalRecs = suggestions.seasonalRecommendations as Record<string, unknown>;
+        const seasons = ['spring', 'summer', 'fall', 'winter'] as const;
         seasons.forEach(season => {
-            if (suggestions.seasonalRecommendations[season] &&
-                typeof suggestions.seasonalRecommendations[season] === 'string') {
-                (normalized.seasonalRecommendations as any)[season] =
-                    suggestions.seasonalRecommendations[season];
+            if (typeof seasonalRecs[season] === 'string') {
+                normalized.seasonalRecommendations[season] = seasonalRecs[season] as string;
             }
         });
     }
@@ -349,19 +354,15 @@ Follow these steps precisely:
         // Save the raw content to a file for debugging (in development)
         if (process.env.NODE_ENV === 'development') {
             try {
-                const fs = require('fs');
-                const path = require('path');
-                const debugDir = path.join(process.cwd(), 'debug');
-
                 // Create debug directory if it doesn't exist
-                if (!fs.existsSync(debugDir)) {
-                    fs.mkdirSync(debugDir, { recursive: true });
+                if (!fs.existsSync(path.join(process.cwd(), 'debug'))) {
+                    fs.mkdirSync(path.join(process.cwd(), 'debug'), { recursive: true });
                 }
 
                 // Write the raw response to a file with timestamp
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 fs.writeFileSync(
-                    path.join(debugDir, `claude-response-${timestamp}.txt`),
+                    path.join(process.cwd(), 'debug', `claude-response-${timestamp}.txt`),
                     fullContent
                 );
                 console.log('[API] Saved raw Claude response to debug file');
@@ -389,7 +390,7 @@ function extractValidJSON(text: string) {
         const directParse = JSON.parse(text.trim());
         console.log('[API] Successfully parsed entire response as JSON');
         return normalizeStyleSuggestions(directParse);
-    } catch (e) {
+    } catch {
         console.log('[API] Direct parsing failed, attempting JSON extraction');
     }
 
