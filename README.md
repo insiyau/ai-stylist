@@ -15,7 +15,7 @@ An AI-powered fashion stylist application that takes images of your clothing and
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **AI**: Integration with multimodal LLMs like GPT-4o or Claude 3 Opus
+- **AI**: Integration with multimodal LLMs like GPT-4o or Claude 3.7 Sonnet
 - **Image Processing**: Client-side image handling with temporary in-memory processing (no storage)
 
 ## Getting Started
