@@ -15,7 +15,7 @@ An AI-powered fashion stylist application that takes images of your clothing and
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **AI**: Integration with Claude 3.7 Sonnet and gpt-image-1
+- **AI**: Integration with Claude 4 Sonnet and gpt-image-1
 - **Image Processing**: Client-side image handling with temporary in-memory processing (no storage)
 
 ## Getting Started
@@ -40,7 +40,7 @@ npm install
 # For OpenAI (gpt-image-1)
 OPENAI_API_KEY=your_openai_key_here
 
-# For Anthropic (Claude 3.7)
+# For Anthropic (Claude 4)
 ANTHROPIC_API_KEY=your_anthropic_key_here
 ```
 
@@ -61,10 +61,10 @@ npm run dev
    - Strong fashion knowledge base
    - Implementation: Use the OpenAI API with the `gpt-image-1` model
 
-2. **Anthropic Claude 3.7 Sonnet**
+2. **Anthropic Claude 4 Sonnet**
    - Advanced multimodal capabilities
    - Detailed reasoning capabilities
-   - Implementation: Use the Anthropic API with the claude-3.7-sonnet model
+   - Implementation: Use the Anthropic API with the `claude-sonnet-4-20250514` model
 
 ### Implementation Steps:
 
