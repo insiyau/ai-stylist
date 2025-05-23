@@ -15,7 +15,7 @@ An AI-powered fashion stylist application that takes images of your clothing and
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **AI**: Integration with multimodal LLMs like GPT-4o or Claude 3 Opus
+- **AI**: Integration with multimodal LLMs like GPT-4o or Claude 3.7 Sonnet
 - **Image Processing**: Client-side image handling with temporary in-memory processing (no storage)
 
 ## Getting Started
@@ -63,10 +63,10 @@ For production use, you'll need to implement the actual LLM API integration. The
    - Strong fashion knowledge base
    - Implementation: Use the OpenAI API with the gpt-4o model
 
-2. **Anthropic Claude 3 Opus**
+2. **Anthropic Claude 3.7 Sonnet**
    - Advanced multimodal capabilities
    - Detailed reasoning capabilities
-   - Implementation: Use the Anthropic API with the claude-3-opus model
+   - Implementation: Use the Anthropic API with the claude-3.7-sonnet model
 
 ### Implementation Steps:
 
