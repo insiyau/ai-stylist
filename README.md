@@ -15,7 +15,7 @@ An AI-powered fashion stylist application that takes images of your clothing and
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **AI**: Integration with multimodal LLMs like GPT-4o or Claude 3.7 Sonnet
+- **AI**: Integration with Claude 3.7 Sonnet and gpt-image-1
 - **Image Processing**: Client-side image handling with temporary in-memory processing (no storage)
 
 ## Getting Started
@@ -37,10 +37,10 @@ npm install
 3. Create an `.env.local` file in the project root and add your LLM API keys:
 
 ```
-# For OpenAI (GPT-4o)
+# For OpenAI (gpt-image-1)
 OPENAI_API_KEY=your_openai_key_here
 
-# For Anthropic (Claude 3)
+# For Anthropic (Claude 3.7)
 ANTHROPIC_API_KEY=your_anthropic_key_here
 ```
 
@@ -54,14 +54,12 @@ npm run dev
 
 ## LLM Integration
 
-For production use, you'll need to implement the actual LLM API integration. The current codebase includes a mock implementation that simulates responses.
+### Current setup:
 
-### Recommended LLM Options:
-
-1. **OpenAI GPT-4o**
-   - Excellent multimodal capabilities (understanding images and generating text)
+1. **gpt-image-1**
+   - One of the best image generation models; used for the visualization feature
    - Strong fashion knowledge base
-   - Implementation: Use the OpenAI API with the gpt-4o model
+   - Implementation: Use the OpenAI API with the `gpt-image-1` model
 
 2. **Anthropic Claude 3.7 Sonnet**
    - Advanced multimodal capabilities
@@ -79,7 +77,9 @@ For production use, you'll need to implement the actual LLM API integration. The
    npm install @anthropic-ai/sdk
    ```
 
-2. Update the API route in `src/app/api/style-suggestions/route.ts` to call the LLM API.
+2. Update the API route in `src/app/api/style-suggestions/route.ts` to call the Claude API for style suggestions
+
+2. Update the API route in `src/app/api/visualize-outfit/route.ts` to call the OpenAI API for image generation
 
 ## Privacy
 
