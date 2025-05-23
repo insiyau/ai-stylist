@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { StyleSuggestion, OutfitIdea } from '@/types';
 
 interface EnhancedResultsProps {
@@ -81,11 +82,15 @@ export default function EnhancedResults({ suggestions, firstUploadedImage }: Enh
                 ...prev,
                 [index]: { imageData: `data:image/png;base64,${responseData.b64_json}`, isLoading: false, error: null }
             }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error visualizing outfit:", err);
             setVisualizations(prev => ({
                 ...prev,
-                [index]: { imageData: null, isLoading: false, error: err.message || 'An unexpected error occurred during visualization.' }
+                [index]: {
+                    imageData: null,
+                    isLoading: false,
+                    error: err instanceof Error ? err.message : 'An unexpected error occurred during visualization.'
+                }
             }));
         }
     };
@@ -230,7 +235,14 @@ export default function EnhancedResults({ suggestions, firstUploadedImage }: Enh
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     className="mt-4 rounded-lg overflow-hidden border border-gray-200 shadow-md relative"
                                                 >
-                                                    <img src={currentVisualization.imageData} alt={`Visualization of ${outfit.title}`} className="w-full h-auto object-contain aspect-square" />
+                                                    <Image
+                                                        src={currentVisualization.imageData}
+                                                        alt={`Visualization of ${outfit.title}`}
+                                                        width={400}
+                                                        height={400}
+                                                        className="w-full h-auto object-contain aspect-square"
+                                                        unoptimized={true}
+                                                    />
                                                     <button
                                                         onClick={() => setVisualizations(prev => ({
                                                             ...prev,
@@ -361,7 +373,7 @@ export default function EnhancedResults({ suggestions, firstUploadedImage }: Enh
                                     ),
                                     summer: (
                                         <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"></path>
+                                            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 000 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"></path>
                                         </svg>
                                     ),
                                     fall: (

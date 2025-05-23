@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         let outfitDetails: OutfitDetails;
         try {
             outfitDetails = JSON.parse(outfitDetailsString);
-        } catch (e) {
+        } catch {
             return NextResponse.json({ error: 'Invalid outfit details format.' }, { status: 400 });
         }
 
