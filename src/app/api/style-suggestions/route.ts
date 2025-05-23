@@ -314,7 +314,7 @@ Follow these steps precisely:
         console.log('[API] Sending request to Anthropic API');
         let fullContent = '';
         const stream = await client.beta.messages.stream({
-            model: "claude-3-7-sonnet-20250219",
+            model: "claude-sonnet-4-20250514",
             max_tokens: 16000,
             temperature: 0.7, // Reduced temperature for more consistent formatting
             system: systemPrompt,

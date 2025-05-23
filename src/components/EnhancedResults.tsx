@@ -1,13 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { StyleSuggestion } from '@/types';
+import Image from 'next/image';
+import { StyleSuggestion, OutfitIdea } from '@/types';
 
 interface EnhancedResultsProps {
     suggestions: StyleSuggestion | null;
+    firstUploadedImage: File | null;
 }
 
-export default function EnhancedResults({ suggestions }: EnhancedResultsProps) {
+interface VisualizationState {
+    imageData: string | null;
+    isLoading: boolean;
+    error: string | null;
+}
+
+export default function EnhancedResults({ suggestions, firstUploadedImage }: EnhancedResultsProps) {
+    const [visualizations, setVisualizations] = useState<Record<number, VisualizationState>>({});
+
     if (!suggestions) return null;
 
     const fadeInUp = {
@@ -22,6 +33,65 @@ export default function EnhancedResults({ suggestions }: EnhancedResultsProps) {
             transition: {
                 staggerChildren: 0.1
             }
+        }
+    };
+
+    const handleVisualize = async (index: number, outfit: OutfitIdea) => {
+        if (!firstUploadedImage) {
+            setVisualizations(prev => ({
+                ...prev,
+                [index]: { imageData: null, isLoading: false, error: 'Original image for visualization is missing.' }
+            }));
+            console.error("Cannot visualize: First uploaded image is missing.");
+            return;
+        }
+
+        setVisualizations(prev => ({
+            ...prev,
+            [index]: { imageData: null, isLoading: true, error: null }
+        }));
+
+        const formDataForApi = new FormData();
+        formDataForApi.append('image', firstUploadedImage);
+
+        // Send raw outfit details for the backend to process for keywords
+        const outfitDetails = JSON.stringify({
+            title: outfit.title,
+            description: outfit.description,
+            items: outfit.items,
+        });
+        formDataForApi.append('outfitDetails', outfitDetails);
+
+        try {
+            const response = await fetch('/api/visualize-outfit', {
+                method: 'POST',
+                body: formDataForApi,
+            });
+
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                throw new Error(responseData.error || 'Failed to visualize outfit. Status: ' + response.status);
+            }
+
+            if (!responseData.b64_json) {
+                throw new Error('No image data received from visualization API.');
+            }
+
+            setVisualizations(prev => ({
+                ...prev,
+                [index]: { imageData: `data:image/png;base64,${responseData.b64_json}`, isLoading: false, error: null }
+            }));
+        } catch (err: unknown) {
+            console.error("Error visualizing outfit:", err);
+            setVisualizations(prev => ({
+                ...prev,
+                [index]: {
+                    imageData: null,
+                    isLoading: false,
+                    error: err instanceof Error ? err.message : 'An unexpected error occurred during visualization.'
+                }
+            }));
         }
     };
 
@@ -71,42 +141,126 @@ export default function EnhancedResults({ suggestions }: EnhancedResultsProps) {
 
                         <motion.div
                             variants={staggerContainer}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                         >
-                            {suggestions.outfitIdeas.map((outfit, index) => (
-                                <motion.div
-                                    key={index}
-                                    variants={fadeInUp}
-                                    whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}
-                                    className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all shadow-sm"
-                                >
-                                    <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 mb-4">
-                                        <h4 className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                            {outfit.title}
-                                        </h4>
-                                        <p className="text-gray-600 text-sm mt-1">{outfit.description}</p>
-                                    </div>
+                            {suggestions.outfitIdeas.map((outfit, index) => {
+                                const currentVisualization = visualizations[index];
+                                return (
+                                    <motion.div
+                                        key={index}
+                                        variants={fadeInUp}
+                                        whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}
+                                        className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all shadow-sm flex flex-col justify-between"
+                                    >
+                                        <div>
+                                            <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 mb-4">
+                                                <h4 className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                                    {outfit.title}
+                                                </h4>
+                                                <p className="text-gray-600 text-sm mt-1">{outfit.description}</p>
+                                            </div>
 
-                                    <ul className="space-y-2">
-                                        {outfit.items.map((item, itemIndex) => (
-                                            <motion.li
-                                                key={itemIndex}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: 0.1 * itemIndex }}
-                                                className="flex items-start text-gray-700 text-sm"
-                                            >
-                                                <span className="text-blue-500 mr-2 mt-0.5 flex-shrink-0">
-                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                                                    </svg>
-                                                </span>
-                                                {item}
-                                            </motion.li>
-                                        ))}
-                                    </ul>
-                                </motion.div>
-                            ))}
+                                            <ul className="space-y-2 mb-4">
+                                                {outfit.items.map((item, itemIndex) => (
+                                                    <motion.li
+                                                        key={itemIndex}
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: 0.1 * itemIndex }}
+                                                        className="flex items-start text-gray-700 text-sm"
+                                                    >
+                                                        <span className="text-blue-500 mr-2 mt-0.5 flex-shrink-0">
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                                            </svg>
+                                                        </span>
+                                                        {item}
+                                                    </motion.li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        {/* Visualization Section */}
+                                        <div className="mt-auto">
+                                            {!currentVisualization?.imageData && (
+                                                <motion.button
+                                                    onClick={() => handleVisualize(index, outfit)}
+                                                    disabled={currentVisualization?.isLoading || !firstUploadedImage}
+                                                    className={`w-full px-4 py-2.5 rounded-lg font-medium shadow-sm transition-all flex items-center justify-center text-sm 
+                                                                ${currentVisualization?.isLoading || !firstUploadedImage
+                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-gradient-to-r from-teal-400 to-blue-500 hover:from-teal-500 hover:to-blue-600 text-white'}`}
+                                                    title={!firstUploadedImage ? "Original image not available for visualization" : "Visualize Outfit"}
+                                                    whileHover={{ scale: currentVisualization?.isLoading ? 1 : 1.03 }}
+                                                    whileTap={{ scale: currentVisualization?.isLoading ? 1 : 0.98 }}
+                                                >
+                                                    {currentVisualization?.isLoading ? (
+                                                        <>
+                                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Visualizing...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path d="M.002 10a17.384 17.384 0 0119.996 0A17.384 17.384 0 01.002 10z" />
+                                                                <path fillRule="evenodd" d="M10 4a6 6 0 100 12 6 6 0 000-12zM8.707 8.707a1 1 0 00-1.414 1.414L10 12.414l2.707-2.293a1 1 0 00-1.414-1.414L10 9.586 8.707 8.707z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Visualize Outfit
+                                                        </>
+                                                    )}
+                                                </motion.button>
+                                            )}
+
+                                            {currentVisualization?.isLoading && !currentVisualization?.imageData && (
+                                                <div className="mt-3 p-3 bg-gray-50 rounded-lg text-center text-xs text-gray-500">
+                                                    Our AI is conjuring up your outfit visualization... please wait a moment.
+                                                </div>
+                                            )}
+                                            {currentVisualization?.error && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="mt-3 p-3 bg-red-50 text-red-600 rounded-lg text-xs flex items-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
+                                                    Error: {currentVisualization.error}
+                                                </motion.div>
+                                            )}
+                                            {currentVisualization?.imageData && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="mt-4 rounded-lg overflow-hidden border border-gray-200 shadow-md relative"
+                                                >
+                                                    <Image
+                                                        src={currentVisualization.imageData}
+                                                        alt={`Visualization of ${outfit.title}`}
+                                                        width={400}
+                                                        height={400}
+                                                        className="w-full h-auto object-contain aspect-square"
+                                                        unoptimized={true}
+                                                    />
+                                                    <button
+                                                        onClick={() => setVisualizations(prev => ({
+                                                            ...prev,
+                                                            [index]: { ...prev[index], imageData: null, error: null } // Keep isLoading false or reset if needed
+                                                        }))}
+                                                        className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full text-xs transition-colors"
+                                                        aria-label="Clear visualization"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                    </button>
+                                                </motion.div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </motion.div>
                     </motion.section>
 
@@ -219,7 +373,7 @@ export default function EnhancedResults({ suggestions }: EnhancedResultsProps) {
                                     ),
                                     summer: (
                                         <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"></path>
+                                            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 000 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"></path>
                                         </svg>
                                     ),
                                     fall: (

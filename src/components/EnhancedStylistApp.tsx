@@ -10,10 +10,23 @@ export default function EnhancedStylistApp() {
     const [styleSuggestions, setStyleSuggestions] = useState<StyleSuggestion | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [firstUploadedImage, setFirstUploadedImage] = useState<File | null>(null);
 
     const handleGetStyleSuggestions = async (formData: FormData) => {
         setIsLoading(true);
         setError(null);
+        setStyleSuggestions(null); // Clear previous suggestions
+        setFirstUploadedImage(null); // Clear previous image
+
+        const images = formData.getAll('images');
+        if (images.length > 0 && images[0] instanceof File) {
+            setFirstUploadedImage(images[0] as File);
+        } else {
+            // Handle case where no valid image is uploaded if necessary, 
+            // or rely on API to return error for no images.
+            // For now, we just won't set an image for visualization.
+            console.warn('[EnhancedStylistApp] No file found in formData to set as firstUploadedImage.');
+        }
 
         try {
             const response = await fetch('/api/style-suggestions', {
@@ -73,6 +86,7 @@ export default function EnhancedStylistApp() {
             console.error('Error processing style suggestions:', error);
             setError('Something went wrong while getting style suggestions. Please try again.');
             setStyleSuggestions(null);
+            setFirstUploadedImage(null); // Also clear image on error
         } finally {
             setIsLoading(false);
         }
@@ -148,7 +162,7 @@ export default function EnhancedStylistApp() {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
                     >
-                        <EnhancedResults suggestions={styleSuggestions} />
+                        <EnhancedResults suggestions={styleSuggestions} firstUploadedImage={firstUploadedImage} />
 
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -157,7 +171,10 @@ export default function EnhancedStylistApp() {
                             className="mt-8 text-center"
                         >
                             <button
-                                onClick={() => setStyleSuggestions(null)}
+                                onClick={() => {
+                                    setStyleSuggestions(null);
+                                    setFirstUploadedImage(null); // Clear image when starting over
+                                }}
                                 className="px-6 py-2.5 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-full shadow-sm border border-gray-200 hover:border-gray-300 transition-all"
                             >
                                 Upload New Images
